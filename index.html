@@ -1,0 +1,790 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor Remote Dice Hack</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+            min-height: 100vh;
+            padding: 10px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            gap: 15px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .title {
+            font-size: clamp(20px, 5vw, 32px);
+            font-weight: bold;
+            background: linear-gradient(45deg, #3B82F6, #8B5CF6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: clamp(12px, 3vw, 16px);
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .status-card {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 12px;
+            padding: 15px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .status-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .status-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #374151;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .badge-success {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .badge-error {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+        .badge-secondary {
+            background: #F3F4F6;
+            color: #374151;
+        }
+
+        .connection-status {
+            text-align: center;
+            padding: 10px;
+        }
+
+        .connected {
+            color: #059669;
+            font-weight: 600;
+        }
+
+        .disconnected {
+            color: #DC2626;
+            font-weight: 600;
+        }
+
+        .data-display {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .data-number {
+            font-size: clamp(32px, 8vw, 48px);
+            font-weight: bold;
+            color: #3B82F6;
+            letter-spacing: 4px;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .data-time {
+            font-size: 12px;
+            color: #6B7280;
+            margin-bottom: 5px;
+        }
+
+        .data-individual {
+            font-size: 14px;
+            color: #3B82F6;
+            margin-bottom: 5px;
+        }
+
+        .data-spoken {
+            font-size: 11px;
+            color: #059669;
+        }
+
+        .waiting-text {
+            color: #9CA3AF;
+            font-style: italic;
+        }
+
+        .control-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: #3B82F6;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6B7280;
+            color: white;
+        }
+
+        .btn-success {
+            background: #059669;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #DC2626;
+            color: white;
+        }
+
+        .history-card {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .history-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .history-count {
+            background: #F3F4F6;
+            color: #374151;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .history-item {
+            background: #F9FAFB;
+            border: 1px solid #E5E7EB;
+            border-radius: 8px;
+            padding: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .history-item:hover {
+            background: #F3F4F6;
+            transform: translateX(2px);
+        }
+
+        .history-data {
+            font-size: 18px;
+            font-weight: bold;
+            color: #3B82F6;
+            margin-bottom: 5px;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+        }
+
+        .history-time {
+            font-size: 11px;
+            color: #6B7280;
+        }
+
+        .empty-history {
+            text-align: center;
+            color: #9CA3AF;
+            padding: 40px 20px;
+            font-style: italic;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0;
+                gap: 10px;
+            }
+
+            .card {
+                padding: 15px;
+                border-radius: 12px;
+            }
+
+            .status-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .control-buttons {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+
+            .btn {
+                padding: 8px 12px;
+                font-size: 11px;
+            }
+
+            .history-card {
+                max-height: 300px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .control-buttons {
+                grid-template-columns: 1fr;
+            }
+
+            .history-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        /* Animation */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .animate-pulse {
+            animation: pulse 2s infinite;
+        }
+
+        /* Scrollbar styling */
+        .history-card::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .history-card::-webkit-scrollbar-track {
+            background: #F3F4F6;
+            border-radius: 3px;
+        }
+
+        .history-card::-webkit-scrollbar-thumb {
+            background: #D1D5DB;
+            border-radius: 3px;
+        }
+
+        .history-card::-webkit-scrollbar-thumb:hover {
+            background: #9CA3AF;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="card header">
+            <h1 class="title">Monitor Remote Dice Hack</h1>
+            <p class="subtitle">Memantau angka dari remote dice hack secara real-time</p>
+        </div>
+
+        <!-- Status Panel -->
+        <div class="status-grid">
+            <div class="status-card">
+                <div class="status-header">
+                    <span class="status-title">Status Koneksi</span>
+                    <span id="connectionBadge" class="badge badge-error">
+                        🔴 Terputus
+                    </span>
+                </div>
+                <div id="connectionStatus" class="connection-status">
+                    <span class="disconnected">🔴 Remote Database Offline</span>
+                </div>
+            </div>
+
+            <div class="status-card">
+                <div class="status-header">
+                    <span class="status-title">Kontrol Suara</span>
+                    <span id="speechBadge" class="badge badge-success">
+                        🔊 Aktif
+                    </span>
+                </div>
+                <div class="control-buttons">
+                    <button id="toggleSpeechBtn" class="btn btn-secondary">
+                        🔇 Matikan Suara
+                    </button>
+                    <button id="testSpeechBtn" class="btn btn-primary">
+                        🎵 Test Suara
+                    </button>
+                </div>
+            </div>
+
+            <div class="status-card">
+                <div class="status-header">
+                    <span class="status-title">Data Terbaru</span>
+                    <span id="dataBadge" class="badge badge-secondary">
+                        📊 Menunggu
+                    </span>
+                </div>
+                <div id="dataDisplay" class="data-display">
+                    <div class="waiting-text">Menunggu data dari remote...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History -->
+        <div class="card">
+            <div class="history-header">
+                <div class="history-title">
+                    🕒 Histori Angka Diterima
+                    <span id="historyCount" class="history-count">0 angka</span>
+                </div>
+                <button id="resetHistoryBtn" class="btn btn-danger">
+                    🗑️ Reset
+                </button>
+            </div>
+            <div class="history-card">
+                <div id="historyList" class="history-list">
+                    <div class="empty-history">
+                        Belum ada angka diterima dari remote dice hack
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const monitoringConfig = {
+            apiKey: "AIzaSyDCYjIYcBNk-418QdBRFCquFSTIfmVpJ4M",
+            authDomain: "remot-dadu-ca3d6.firebaseapp.com",
+            databaseURL: "https://remot-dadu-ca3d6-default-rtdb.firebaseio.com",
+            projectId: "remot-dadu-ca3d6",
+            storageBucket: "remot-dadu-ca3d6.firebasestorage.app",
+            messagingSenderId: "449910097968",
+            appId: "1:449910097968:web:3cd3cd8f8aa8f0633b45f5"
+        };
+
+        const dataConfig = {
+            databaseURL: "https://server-dadu-kecrek-default-rtdb.firebaseio.com/"
+        };
+
+        // State variables
+        let isConnected = false;
+        let speechEnabled = true;
+        let lastSpokenData = '';
+        let numberHistory = [];
+        let lastProcessedTime = 0;
+
+        // DOM elements
+        const connectionBadge = document.getElementById('connectionBadge');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const speechBadge = document.getElementById('speechBadge');
+        const toggleSpeechBtn = document.getElementById('toggleSpeechBtn');
+        const testSpeechBtn = document.getElementById('testSpeechBtn');
+        const dataBadge = document.getElementById('dataBadge');
+        const dataDisplay = document.getElementById('dataDisplay');
+        const historyCount = document.getElementById('historyCount');
+        const historyList = document.getElementById('historyList');
+        const resetHistoryBtn = document.getElementById('resetHistoryBtn');
+
+        // Text-to-Speech function optimized for mobile
+        function speakNumbers(numbers) {
+            if (!speechEnabled || !('speechSynthesis' in window)) {
+                console.log('Speech disabled or not supported');
+                return;
+            }
+            
+            // Prevent duplicate speech
+            if (lastSpokenData === numbers) {
+                console.log('Skipping duplicate speech for:', numbers);
+                return;
+            }
+            
+            // Cancel any ongoing speech
+            window.speechSynthesis.cancel();
+            
+            // Wait for cancellation to complete
+            setTimeout(() => {
+                const numberArray = numbers.split('');
+                const pronunciation = numberArray.join(', ');
+                
+                const utterance = new SpeechSynthesisUtterance();
+                utterance.text = `Angka ${pronunciation}`;
+                utterance.lang = 'id-ID';
+                utterance.rate = 0.8;
+                utterance.pitch = 1;
+                utterance.volume = 1;
+                
+                // Find Indonesian voice if available
+                const voices = window.speechSynthesis.getVoices();
+                const indonesianVoice = voices.find(voice => 
+                    voice.lang.startsWith('id') || voice.lang.includes('Indonesia')
+                );
+                
+                if (indonesianVoice) {
+                    utterance.voice = indonesianVoice;
+                }
+                
+                utterance.onstart = () => {
+                    console.log('Speech started for:', numbers);
+                    lastSpokenData = numbers;
+                };
+                
+                utterance.onend = () => {
+                    console.log('Speech ended for:', numbers);
+                };
+                
+                utterance.onerror = (event) => {
+                    console.error('Speech error:', event.error);
+                };
+                
+                try {
+                    window.speechSynthesis.speak(utterance);
+                } catch (error) {
+                    console.error('Speech synthesis error:', error);
+                }
+            }, 100);
+        }
+
+        // Initialize speech synthesis
+        function initializeSpeech() {
+            if ('speechSynthesis' in window) {
+                const loadVoices = () => {
+                    const voices = window.speechSynthesis.getVoices();
+                    console.log('Available voices:', voices.length);
+                };
+                
+                loadVoices();
+                window.speechSynthesis.onvoiceschanged = loadVoices;
+                
+                // Enable speech on first user interaction (required for mobile)
+                const enableSpeech = () => {
+                    if (speechEnabled) {
+                        window.speechSynthesis.cancel();
+                        const testUtterance = new SpeechSynthesisUtterance('');
+                        testUtterance.volume = 0;
+                        window.speechSynthesis.speak(testUtterance);
+                    }
+                    document.removeEventListener('touchstart', enableSpeech);
+                    document.removeEventListener('click', enableSpeech);
+                };
+                
+                document.addEventListener('touchstart', enableSpeech, { once: true });
+                document.addEventListener('click', enableSpeech, { once: true });
+            }
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            console.log(`[${type.toUpperCase()}] ${message}`);
+            
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'error' ? '#DC2626' : type === 'success' ? '#059669' : '#3B82F6'};
+                color: white;
+                padding: 12px 16px;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 500;
+                z-index: 1000;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                max-width: calc(100vw - 40px);
+                word-wrap: break-word;
+            `;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                if (document.body.contains(toast)) {
+                    document.body.removeChild(toast);
+                }
+            }, 3000);
+        }
+
+        // Update connection status
+        function updateConnectionStatus() {
+            if (isConnected) {
+                connectionBadge.className = 'badge badge-success';
+                connectionBadge.innerHTML = '🟢 Terhubung';
+                connectionStatus.innerHTML = '<span class="connected animate-pulse">🟢 Remote Database Online</span>';
+            } else {
+                connectionBadge.className = 'badge badge-error';
+                connectionBadge.innerHTML = '🔴 Terputus';
+                connectionStatus.innerHTML = '<span class="disconnected">🔴 Remote Database Offline</span>';
+            }
+        }
+
+        // Update speech status
+        function updateSpeechStatus() {
+            if (speechEnabled) {
+                speechBadge.className = 'badge badge-success';
+                speechBadge.innerHTML = '🔊 Aktif';
+                toggleSpeechBtn.className = 'btn btn-secondary';
+                toggleSpeechBtn.innerHTML = '🔇 Matikan Suara';
+                testSpeechBtn.disabled = false;
+            } else {
+                speechBadge.className = 'badge badge-secondary';
+                speechBadge.innerHTML = '🔇 Nonaktif';
+                toggleSpeechBtn.className = 'btn btn-success';
+                toggleSpeechBtn.innerHTML = '🔊 Nyalakan Suara';
+                testSpeechBtn.disabled = true;
+            }
+        }
+
+        // Format timestamp
+        function formatTimestamp(timestamp) {
+            return new Date(timestamp).toLocaleString('id-ID', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        // Display received data
+        function displayData(data, timestamp) {
+            dataBadge.className = 'badge badge-success';
+            dataBadge.innerHTML = '📊 Ada Data';
+            
+            const formattedTime = formatTimestamp(timestamp);
+            const individualNumbers = data.split('').join(' - ');
+            
+            dataDisplay.innerHTML = `
+                <div class="data-number">${data}</div>
+                <div class="data-time">${formattedTime}</div>
+                <div class="data-individual">${individualNumbers}</div>
+                ${lastSpokenData === data ? '<div class="data-spoken">♪ Telah disuarakan</div>' : ''}
+            `;
+        }
+
+        // Add to history
+        function addToHistory(data, timestamp) {
+            const historyItem = {
+                data: data,
+                timestamp: timestamp,
+                id: Date.now().toString()
+            };
+            
+            // Prevent duplicates in history
+            const exists = numberHistory.find(item => 
+                item.data === data && 
+                Math.abs(item.timestamp - timestamp) < 5000 // Within 5 seconds
+            );
+            
+            if (!exists) {
+                numberHistory.unshift(historyItem);
+                numberHistory = numberHistory.slice(0, 50); // Keep only last 50 items
+                updateHistoryDisplay();
+            }
+        }
+
+        // Update history display
+        function updateHistoryDisplay() {
+            historyCount.textContent = `${numberHistory.length} angka`;
+            
+            if (numberHistory.length === 0) {
+                historyList.innerHTML = '<div class="empty-history">Belum ada angka diterima dari remote dice hack</div>';
+                return;
+            }
+            
+            historyList.innerHTML = numberHistory.map(item => `
+                <div class="history-item">
+                    <div class="history-data">${item.data}</div>
+                    <div class="history-time">${formatTimestamp(item.timestamp)}</div>
+                </div>
+            `).join('');
+        }
+
+        // Event listeners
+        toggleSpeechBtn.addEventListener('click', () => {
+            speechEnabled = !speechEnabled;
+            
+            if (!speechEnabled) {
+                window.speechSynthesis.cancel();
+                lastSpokenData = '';
+            }
+            
+            updateSpeechStatus();
+            showToast(speechEnabled ? 'Suara dinyalakan' : 'Suara dimatikan', 'success');
+        });
+
+        testSpeechBtn.addEventListener('click', () => {
+            if ('speechSynthesis' in window && speechEnabled) {
+                lastSpokenData = ''; // Reset to allow test
+                speakNumbers('123');
+                showToast('Menguji suara: 1, 2, 3', 'info');
+            } else {
+                showToast('Suara tidak tersedia atau dimatikan', 'error');
+            }
+        });
+
+        resetHistoryBtn.addEventListener('click', () => {
+            if (confirm('Yakin ingin menghapus semua histori?')) {
+                numberHistory = [];
+                lastSpokenData = '';
+                lastProcessedTime = 0;
+                updateHistoryDisplay();
+                
+                // Reset data display
+                dataBadge.className = 'badge badge-secondary';
+                dataBadge.innerHTML = '📊 Menunggu';
+                dataDisplay.innerHTML = '<div class="waiting-text">Menunggu data dari remote...</div>';
+                
+                showToast('Histori telah dihapus', 'success');
+            }
+        });
+
+        // Initialize Firebase
+        function initializeFirebase() {
+            try {
+                const monitoringApp = firebase.initializeApp(monitoringConfig, 'monitoring');
+                const dataApp = firebase.initializeApp(dataConfig, 'data');
+
+                const monitoringDb = firebase.database(monitoringApp);
+                const dataDb = firebase.database(dataApp);
+                
+                const baucuaRef = dataDb.ref('baucua');
+                const connectedRef = dataDb.ref('.info/connected');
+
+                // Connection status listener
+                connectedRef.on('value', (snapshot) => {
+                    isConnected = snapshot.val();
+                    updateConnectionStatus();
+                    console.log('Connection status:', isConnected);
+                });
+
+                // Data listener with duplicate prevention
+                baucuaRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data && data.results) {
+                        const currentTime = data.time || Date.now();
+                        
+                        console.log('Received data from remote:', data.results, 'at time:', currentTime);
+                        
+                        // Prevent processing duplicate data within 3 seconds
+                        if (currentTime > lastProcessedTime + 3000) {
+                            lastProcessedTime = currentTime;
+                            
+                            displayData(data.results, currentTime);
+                            addToHistory(data.results, currentTime);
+                            speakNumbers(data.results);
+                            
+                            showToast(`Angka diterima: ${data.results}`, 'success');
+                        } else {
+                            console.log('Skipping duplicate data within 3 seconds');
+                        }
+                    }
+                });
+
+                showToast('Monitor terhubung ke database remote', 'success');
+
+            } catch (error) {
+                console.error('Firebase initialization error:', error);
+                showToast('Gagal terhubung ke database remote', 'error');
+            }
+        }
+
+        // Initialize app
+        window.addEventListener('load', () => {
+            console.log('Monitor app loaded');
+            initializeSpeech();
+            updateSpeechStatus();
+            updateConnectionStatus();
+            updateHistoryDisplay();
+            initializeFirebase();
+        });
+
+        // Prevent page reload on mobile
+        document.addEventListener('touchmove', function(e) {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+            }
+        }, { passive: false });
+    </script>
+</body>
+</html>
